@@ -89,8 +89,8 @@ def details(deviceid):
     response = jsonify({'error': 'not found'})
     response.status_code = 404
     return response
-  query-rows = deviceDetails.query.filter(deviceDetails.deviceId==deviceid)
-  row = query-rows.first()
+  queryrows = deviceDetails.query.filter(deviceDetails.deviceId == deviceid)
+  row = queryrows.first()
   details = {"make":row.make, "model":row.model,
 	     "function":row.function, "pm10Particles":row.pm10Particles}
   return jsonify({"iotDeviceDetails":details})
@@ -102,8 +102,8 @@ def location(deviceid):
     response = jsonify({'error': 'not found'})
     response.status_code = 404
     return response
-  query-rows = deviceLocation.query.filter(deviceLocation.deviceId==deviceid)
-  row = query-rows.first()
+  queryrows = deviceLocation.query.filter(deviceLocation.deviceId==deviceid)
+  row = queryrows.first()
   details = {"altitude":row.altitude, "latitude":row.latitude,
 	     "longitude":row.longitude, "timestamp":row.timestamp}
   return jsonify({"iotLocationDetails":details})
@@ -115,8 +115,8 @@ def status(deviceid):
     response = jsonify({'error': 'not found'})
     response.status_code = 404
     return response
-  query-rows = deviceStatus.query.filter(deviceStatus.deviceId==deviceid)
-  row = query-rows.first()
+  queryrows = deviceStatus.query.filter(deviceStatus.deviceId==deviceid)
+  row = queryrows.first()
   details = {"pollutionLevel":row.pollutionLevel, "timestamp":row.timestamp, "operationalState":row.operationalState}
   return jsonify({"iotDeviceStatus":details})
 
