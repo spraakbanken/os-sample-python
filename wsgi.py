@@ -117,7 +117,7 @@ def status(deviceid):
     return response
   query-rows = deviceStatus.query.filter(deviceStatus.deviceId==deviceid)
   row = query-rows.first()
-  details = {"pollutionLevel":row.pollutionLevel), "timestamp":row.timestamp, "operationalState":row.operationalState}
+  details = {"pollutionLevel":row.pollutionLevel, "timestamp":row.timestamp, "operationalState":row.operationalState}
   return jsonify({"iotDeviceStatus":details})
 
 @application.route("/1/iotDeviceEvent", methods=["POST"])
