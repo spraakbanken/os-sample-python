@@ -50,12 +50,14 @@ class deviceLocation(db.Model):
 # specify the column names here
   deviceId = db.Column(db.String(10), primary_key=True)
   altitude = db.Column(db.String(10))
+  longitude = db.Column(db.String(16))
   latitude = db.Column(db.String(16))
   timestamp = db.Column(db.String(16))
 
-  def __init__(self, deviceId, altitude, latitude, timestamp):
+  def __init__(self, deviceId, altitude, longitude, latitude, timestamp):
     self.deviceId = deviceId
     self.altitude = altitude
+    self.longitude = longitude
     self.latitude = latitude
     self.timestamp = timestamp
 
@@ -81,6 +83,20 @@ class deviceStatus(db.Model):
   def __refr__(self):
     return '<deviceStatus %r>' % self.name
 
+class callbacks(db.Model):
+  __tablename__ = 'callbacks'
+
+# specify the column names here
+  deviceId = db.Column(db.String(10), primary_key=True)
+  url = db.Column(db.String(256), primary_key=True)
+
+  def __init__(self, deviceId, url):
+    self.deviceId = deviceId
+    self.url = url
+
+  def __refr__(self):
+    return '<callbacks %r>' % self.name
+
 
 @application.route("/1/iotDeviceDetails/<deviceid>")
 def details(deviceid):
@@ -104,8 +120,8 @@ def location(deviceid):
     return response
   queryrows = deviceLocation.query.filter(deviceLocation.deviceId==deviceid)
   row = queryrows.first()
-  details = {"altitude":row.altitude, "latitude":row.latitude,
-	     "longitude":row.longitude, "timestamp":row.timestamp}
+  details = {"altitude":row.altitude, "longitude":row.longitude,
+	     "latitude":row.latitude, "timestamp":row.timestamp}
   return jsonify({"iotLocationDetails":details})
 
 @application.route("/1/iotDeviceStatus/<deviceid>")
@@ -125,12 +141,50 @@ def event():
   #post request including the deviceid and a notifyURL
   deviceId = request.form['deviceId']
   url = request.form['notifyURL']
-  states = ["Red", "Amber", "Green"]
+
+  # Need to check that the deviceID exists in the DB
+  row = deviceStatus.query.filter(deviceStatus.deviceId==deviceId).first()
+  if row is None:
+    response = jsonify({'error': 'deviceId not found'})
+    response.status_code = 404 # check if this is a valid response code
+    return response
+
+  # Add the notify URL into a table  to iterate and update on a change
+  callback = callbacks(deviceId, url)
+  db.session.add(callback)
+  db.session.commit()
+  
+  # Send a post request to the callback URL
+  details = {"deviceId":deviceId, "pollutionLevel":row.pollutionLevel, "timestamp":row.timestamp}
+  r = requests.post(url, json=details)
+  return jsonify(details), 201
+
+@application.route("/buttonpress")
+def press():
+  # This is called when the 1btn is pressed
+  # It updates the timestamp and state for the dID of 1234
   timestamp = unicode(datetime.now()).partition('.')[0]
-  details = {"pollutionRange":random.choice(states), "timestamp":timestamp}
-  d2 = json.dumps({"iotPollutionStatus":details})
-  r = requests.post(url, data=d2)
-  return d2, 201
+  states = ["Red", "Amber", "Green"]
+  row = deviceStatus.query.filter(deviceStatus.deviceId=="1234").first()
+
+  # remove the existing state from the states list
+  states.remove(row.pollutionLevel)
+  print states
+
+  row.timestamp = timestamp
+  row.pollutionLevel = random.choice(states)
+  db.session.commit()
+
+  # post the changes to the registered URLs
+  details = {"deviceId":"1234", "pollutionLevel":row.pollutionLevel, "timestamp":row.timestamp}
+
+  urlRows =  callbacks.query.filter(callbacks.deviceId=="1234")
+  for urlrow in urlRows:
+    r = requests.post(urlrow.url, json=details)
+
+  return jsonify({"ButtonPress":"Success"})
+
+
 
 if __name__ == "__main__":
   application.run(debug=True)
