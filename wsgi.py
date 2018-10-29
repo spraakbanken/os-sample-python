@@ -169,7 +169,7 @@ def press():
 
   # remove the existing state from the states list
   states.remove(row.pollutionLevel)
-  print states
+  print(states)
 
   row.timestamp = timestamp
   row.pollutionLevel = random.choice(states)
